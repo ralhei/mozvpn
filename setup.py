@@ -34,6 +34,7 @@ setup(
     entry_points={
         'console_scripts': [
             'mozvpn=mozvpn.cli:main',
+            'xmozvpn=mozvpn.cli:xmozvpn',
         ],
     },
     install_requires=requirements,
@@ -47,6 +48,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/ralhei/mozvpn',
-    version='0.1.0',
+    version='0.2dev1',
     zip_safe=False,
 )

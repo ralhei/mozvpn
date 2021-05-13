@@ -1,9 +1,12 @@
 """Qt6 based GUI frontend for mozilla VPN."""
 import csv
-import subprocess
+import threading
+import time
 
 from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout, QHBoxLayout, \
     QPushButton, QComboBox, QMessageBox, QSizePolicy, QMainWindow
+
+from mozvpn import wireguard
 
 
 class MainWindow(QMainWindow):
@@ -13,7 +16,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         """Compose main window widgets."""
         super().__init__()
-        self.vpn_active = False
+        self.wireguard_interface = None
 
         self.setWindowTitle('MozVPN')
 
@@ -39,69 +42,89 @@ class MainWindow(QMainWindow):
         container.setLayout(vlayout)
         self.setCentralWidget(container)
 
+        self.show()
+
+        # Check whether VPN is already running:
+        iface = wireguard.interface()
+        if iface:
+            self.wireguard_interface = iface
+            self.update_gui_activity_status()
+            QMessageBox.information(self, 'Information', 'VPN is already running')
+
+        self.update_thread = threading.Thread(target=self._update_connect_in_thread, daemon=True)
+        # self.update_thread.run()  ----- must us Qt6 threads instead!!!
+
     def _fill_vpn_choice_combo(self):
         """Fill the VPN server combobox from geolocation csv file."""
         fp = open('server-locations.csv')
         server_locations = csv.DictReader(fp)
         for loc in server_locations:
             loc_str = '{country} - {region} - {city}'.format(**loc)
-            self.combo.addItem(loc_str, loc['conf'])
+            self.combo.addItem(loc_str, loc['interface'])
 
     def closeEvent(self, event):
         """Catch close event. If active VPN connection, ask for confirmation."""
-        if self.vpn_active:
+        if self.wireguard_interface:
             reply = QMessageBox.question(
                 self, 'Quit', 'Are you sure you want to quit and stop the active VPN?'
             )
             if reply == QMessageBox.StandardButtons.Yes:
-                self.run_wg_quick_cmd('down')
+                vpn_config_file = self.combo.currentData()
+                wireguard.disconnect(vpn_config_file)
             else:
                 event.ignore()
 
-    def toggle_connect(self):
-        """Toggle (connect or disconnect) Mozilla VPN connection."""
-        if self.vpn_active:
+    def _update_connect_in_thread(self):
+        """Running in background thread for checking current VPN connectivty situation."""
+        while True:
+            time.sleep(.25)
+            print('updating in thread')
+            self.update_connect()
+
+    def update_connect(self):
+        """Find out which VPN connection currently exists, and update GUI accordingly."""
+        iface = wireguard.interface()
+        if iface != self.wireguard_interface:
+            self.wireguard_interface = iface
+            self.update_gui_activity_status()
+            QMessageBox.warning(self, 'Warning', 'VPN connection got changed!')
+
+    def update_gui_activity_status(self):
+        if not self.wireguard_interface:
             button_text = 'Connect'
             button_color = 'none'
-            vpn_cmd_arg = 'down'
         else:
             button_text = 'Disconnect'
             button_color = 'red'
-            vpn_cmd_arg = 'up'
-
-        if not self.run_wg_quick_cmd(vpn_cmd_arg):
-            # Running the VPN command was not successful!
-            return
-
-        self.vpn_active = not self.vpn_active
         self.connect_button.setText(button_text)
         self.connect_button.setStyleSheet(f"background-color: {button_color}")
-        self.combo.setEnabled(not self.vpn_active)
+        self.combo.setEnabled(self.wireguard_interface is None)
 
-    def run_wg_quick_cmd(self, vpn_cmd_arg: str):
-        """Run the external 'sudo wg-quick <up/down> cfg-file command.
-
-        Args:
-            vpn_cmd_arg: either 'up' or 'down'
-        Returns:
-            True if successful, else False
-        """
-        vpn_config_file = self.combo.currentData()
-        wg_quick_cmd = f'xecho sudo -n wg-quick {vpn_cmd_arg} {vpn_config_file}'.split()
+    def toggle_connect(self):
+        """Toggle (connect or disconnect) Mozilla VPN connection."""
         try:
-            proc = subprocess.run(wg_quick_cmd, timeout=10, capture_output=True)
-        except FileNotFoundError as exc:
+            if not self.wireguard_interface:
+                iface = wireguard.interface()
+                if iface:
+                    QMessageBox.warning(self, 'Warning', 'VPN has been turned on already!')
+                else:
+                    iface = self.combo.currentData()
+                    wireguard.connect(iface)
+            else:
+                iface = wireguard.interface()
+                if iface:
+                    # Could be None if VPN connection was already down or turned off otherwise.
+                    wireguard.disconnect(iface)
+                iface = None
+        except wireguard.WireguardError as exc:
             QMessageBox.critical(self, 'Error', str(exc))
-            return False
-        if proc.returncode:
-            QMessageBox.critical(self, 'Error', proc.stderr.decode('utf8'))
-            return False
-        return True
+        else:
+            self.wireguard_interface = iface
+            self.update_gui_activity_status()
 
 
 def gui():
     """Main gui function, to be called from cli.py"""
     app = QApplication([])
-    window = MainWindow()
-    window.show()
+    MainWindow()
     app.exec()

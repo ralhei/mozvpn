@@ -28,6 +28,14 @@ mozvpn.mozvpn\_gui module
    :undoc-members:
    :show-inheritance:
 
+mozvpn.wireguard module
+-----------------------
+
+.. automodule:: mozvpn.wireguard
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 
