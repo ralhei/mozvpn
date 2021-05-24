@@ -1,5 +1,8 @@
-Welcome to mozvpn's documentation!
-======================================
+Welcome to MozVPN's documentation!
+===================================
+
+MozVPN is an alternative command line interface (CLI) and
+and graphical user interface (GUI) client for MozillaVPN.
 
 .. toctree::
    :maxdepth: 2
@@ -7,6 +10,7 @@ Welcome to mozvpn's documentation!
 
    readme
    installation
+   setup
    usage
    modules
    contributing

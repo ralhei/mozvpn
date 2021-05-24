@@ -1,5 +1,5 @@
 ======
-mozvpn
+MozVPN
 ======
 
 
@@ -14,21 +14,25 @@ mozvpn
         :target: https://mozvpn.readthedocs.io/en/latest/?version=latest
         :alt: Documentation Status
 
-Alternative CLI and GUI for MozillaVPN.
+MozVPN is an alternative CLI and GUI client for MozillaVPN.
 
+When MozillaVPN showed up in May 2021 Mozilla published clients for Ubuntu
+Linux only, which didn't run on my OpenSuse machine. This was the motivation
+to implement this alternative client.
 
 Short Usage
 -----------
-The following instructions assume that everything is installed
+The following instructions assume that everything is installed and setup
 (incl. ``wireguard`` and ``wireguard-tools``)
-and you have a subscription for MozillaVPN.
+and you have a subscription for MozillaVPN. Visit section :ref:`Installation`
+for details.
 
 Graphical User Interface (GUI)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To start the GUI for mozvpn just run::
 
     $ mozvpn gui
-    or
+    (or alternatively)
     $ xmozvpn
 
 A window should open and allow you to select the desired VPN server endpoint

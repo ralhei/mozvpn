@@ -29,6 +29,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
     description="Tools and GUI for MozillaVPN.",
     entry_points={
@@ -48,6 +49,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/ralhei/mozvpn',
-    version='0.2dev1',
+    version='0.2.0',
     zip_safe=False,
 )

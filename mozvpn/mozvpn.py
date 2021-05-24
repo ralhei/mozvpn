@@ -3,6 +3,7 @@ import re
 import pathlib
 import logging
 from typing import List, Dict
+from operator import itemgetter
 
 import requests
 
@@ -33,21 +34,32 @@ def find_vpn_server_locations(wg_config_files: List[str]):
         list of dictionaries containing configuration/location data.
     """
     wg_configs = []
+    # Loop over all config files, or, if a directory was found, read out all
+    # configuration files from the given directory:
     for conf_path in wg_config_files:
         p_conf_path = pathlib.Path(conf_path)
         if p_conf_path.is_dir():
             # Find all wireguard config files in given directory:
             wg_configs.extend(
-                {'conf': gp for gp in p_conf_path.glob('*.conf')}
+                {'path': gp} for gp in p_conf_path.glob('*.conf')
             )
         else:
             # The file itself is assumed to be a wireguard config file:
-            wg_configs.append({'conf': p_conf_path})
+            wg_configs.append({'path': p_conf_path})
+
+    # Regex to split interface name like 'de12-wirecard' into ('de', 12, 'wirecard')
+    # for being able to properly sort list of wireguard configurations by name:
+    wg_pat = re.compile(r'(\w+)(\d+)-(.+)')
 
     # Extract IP addresses of server endpoints from wireguard config files
     # and determine their geographic location:
     for wg_config in wg_configs:
-        conf = wg_config['conf'].read_text()
+        # Extract the interface part of the config file name, e.g. 'de10-wireguard'
+        # from '/etc/wireguard/de10-wireguard.conf':
+        wg_config['interface'] = wg_config['path'].stem
+        wg_config['sort_me'] = wg_pat.match(wg_config['interface']).groups()
+
+        conf = wg_config['path'].read_text()
         match = ENDPOINT_RE.search(conf)
         if match:
             ip = match.group('ip')
@@ -57,4 +69,4 @@ def find_vpn_server_locations(wg_config_files: List[str]):
             logger.warning(
                 'Cannot find endpoint IP in wireguard configfile %s', wg_config['conf']
             )
-    return wg_configs
+    return sorted(wg_configs, key=itemgetter('sort_me'))

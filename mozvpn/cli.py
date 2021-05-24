@@ -1,9 +1,14 @@
 """Console script for mozvpn."""
+import os
 import sys
 import csv
 import click
+import logging
 
 from mozvpn import mozvpn, mozvpn_gui, wireguard
+
+logger = logging.getLogger('mozvpn')
+logging.basicConfig(level=logging.WARNING, stream=sys.stdout)
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -53,7 +58,11 @@ def status(ip):
     Args:
         ip: If True, the externally visible IP address will also be returned.
     """
-    print(wireguard.status(ip=ip))
+    try:
+        print(wireguard.status(ip=ip))
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
 
 
 @main.command()
@@ -65,7 +74,10 @@ def ip():
 @main.command()
 def gui():
     """Start graphical user interface for mozvpn."""
-    mozvpn_gui.gui()
+    try:
+        mozvpn_gui.gui()
+    except wireguard.ControlledExit:
+        sys.exit(1)
 
 
 @click.argument('config_paths', nargs=-1)
@@ -78,27 +90,36 @@ def geolocate(config_paths, output):
     if 'output' was not provided or is a dash ('-').
     """
     vpn_configs = mozvpn.find_vpn_server_locations(config_paths)
-    fieldnames = ['conf', 'ip', 'country', 'region', 'city']
+    fieldnames = ['interface', 'ip', 'country', 'region', 'city']
     writer = csv.DictWriter(output, fieldnames, extrasaction='ignore')
     writer.writeheader()
     writer.writerows(vpn_configs)
 
 
+@click.option('--verbose', '-v', is_flag=True, default=False)
+@click.option('--dry-run', '-m', is_flag=True, default=False,
+              help='Print all commands to the shell without executing them.')
+@click.option('--user', '-u', default=os.getlogin())
 @main.command()
-def install():
-    """Install all that is necessary to run MozillaVPN -- to be finished ..."""
-    # cmd('groupadd mozvpn')
-    # cmd('usermod -a -G mozvpn <user>')
-    # cmd('echo "%mozvpn ALL = (root) NOPASSWD: /usr/bin/wg, /usr/bin/wg-quick" > /etc/sudoers.d/mozvpn')
-    # cmd('chmod 440 /etc/sudoers.d/mozvpn')
-    pass
+def setup(user, dry_run, verbose):
+    """Setup the configuration necessary to run MozillaVPN"""
+    try:
+        wireguard.setup_wireguard_configuration(user, verbose, dry_run)
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
+    except wireguard.ControlledExit:
+        sys.exit(1)
 
 
 @click.command()
 def xmozvpn():
     """Start graphical user interface for mozvpn."""
     # This is an alternative for 'mozvpn gui' above.
-    mozvpn_gui.gui()
+    try:
+        mozvpn_gui.gui()
+    except wireguard.ControlledExit:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
