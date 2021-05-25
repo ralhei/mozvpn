@@ -24,8 +24,8 @@ Short Usage
 -----------
 The following instructions assume that everything is installed and setup
 (incl. ``wireguard`` and ``wireguard-tools``)
-and you have a subscription for MozillaVPN. Visit section :ref:`Installation`
-for details.
+and you have a subscription for MozillaVPN. For details see the
+complete documentation on https://mozvpn.readthedocs.io.
 
 Graphical User Interface (GUI)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
