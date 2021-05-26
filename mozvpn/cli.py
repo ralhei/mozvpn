@@ -97,14 +97,16 @@ def geolocate(config_paths, output):
 
 
 @click.option('--verbose', '-v', is_flag=True, default=False)
+@click.option('--limit', '-l', default=0,
+              help='Limit the number of servers saved. A value of 0 disables this limit.')
 @click.option('--dry-run', '-m', is_flag=True, default=False,
               help='Print all commands to the shell without executing them.')
 @click.option('--user', '-u', default=os.getlogin())
 @main.command()
-def setup(user, dry_run, verbose):
+def setup(user, dry_run, verbose, limit):
     """Setup the configuration necessary to run MozillaVPN"""
     try:
-        wireguard.setup_wireguard_configuration(user, verbose, dry_run)
+        wireguard.setup_wireguard_configuration(user, verbose, dry_run, limit)
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)

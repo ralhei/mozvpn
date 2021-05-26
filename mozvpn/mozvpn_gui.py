@@ -146,8 +146,8 @@ class MainWindow(QMainWindow):
                     # Could be None if VPN connection was already down or turned off otherwise.
                     wireguard.disconnect(iface)
                 iface = None
-        except wireguard.WireguardError as exc:
-            QMessageBox.critical(self, 'Error', str(exc))
+        except wireguard.CommandError as exc:
+            QMessageBox.critical(self, 'Error', f'Unexpected error:\n{exc}')
         else:
             self.wireguard_interface = iface
             self.update_gui_activity_status()

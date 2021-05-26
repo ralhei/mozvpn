@@ -204,34 +204,36 @@ def check_wireguard_commands() -> dict:
 
 NON_ROOT_SETUP_COMMANDS_LINUX = [
     'chmod 700 {tmp_dir}',
-    ('echo "%mozvpn ALL = (root) NOPASSWD: {wg-quick} up, {wg-quick} down" '
+    ('echo "%mozvpn ALL = (root) NOPASSWD: {wg-quick} up *-wireguard, {wg-quick} down *-wireguard" '
      '> {tmp_dir}/mozvpn.sudo'),
-    'mozwire relay save -o {tmp_dir} -n 3',
+    'mozwire relay save -o {tmp_dir} -n {limit}',
     'mozvpn geolocate {tmp_dir} -o {tmp_dir}/locations.csv',
 ]
 ROOT_SETUP_COMMANDS_LINUX = [
     'groupadd -f mozvpn',
     'usermod -a -G mozvpn {user}',
+    'chown root.root {tmp_dir}/*',
     'mv {tmp_dir}/mozvpn.sudo /etc/sudoers.d/mozvpn',
     'chmod 440 /etc/sudoers.d/mozvpn',
     'mkdir -p /etc/wireguard',
     'mv {tmp_dir}/* {wireguard_etc_dir}',
-    'chown root.root {wireguard_etc_dir}/*',
     'chmod 440 {wireguard_etc_dir}/*.conf',
 ]
 
 
-def setup_wireguard_configuration(user: str, verbose: bool, dry_run: bool):
+def setup_wireguard_configuration(user: str, verbose: bool, dry_run: bool, limit: int):
     """Setup configurations needed to operate wireguard.
 
     Args:
         user: name of primary user who should be allowed to use MozVPN.
         verbose: if True print command to stdout.
         dry_run: if True then the commands will only be written to stdout only.
+        limit: Limit the number of servers downloaded via mozwire
             and not executed.
     """
     params = check_wireguard_commands()
     params['user'] = user
+    params['limit'] = limit
     params['wireguard_etc_dir'] = WIREGUARD_ETC_DIR
 
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -246,6 +248,7 @@ def setup_wireguard_configuration(user: str, verbose: bool, dry_run: bool):
             run_command(scmd, shell=True, verbose=verbose, dry_run=dry_run)
 
     print(
-        "Please add more users to group 'mozvpn' for those who should be allowe to use mozvpn. "
+        f"The only user currently allowed to use mozvpn is '{user}'.\n"
+        "Please add more users to group 'mozvpn' for those who should be allowed to use mozvpn. "
         "You and all added users have logout and login again in order to activate this new group."
     )
